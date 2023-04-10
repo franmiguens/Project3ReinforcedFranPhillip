@@ -62,7 +62,19 @@ class ValueIterationAgent(ValueEstimationAgent):
     def runValueIteration(self):
         # Write value iteration code here
         "*** YOUR CODE HERE ***"
-
+        
+        vals = self.values.copy()
+        for i in range(self.iterations):
+            for s in self.mdp.getStates():
+                qvals = []
+                for a in self.mdp.getPossibleActions(s):
+                    qval = self.computeQValueFromValues(s,a)
+                    qvals.append(qval)
+                if qvals:
+                    vals[s] = max(qvals)
+                else:
+                    vals[s] = 0
+            self.values = vals.copy()
 
     def getValue(self, state):
         """
@@ -77,6 +89,10 @@ class ValueIterationAgent(ValueEstimationAgent):
           value function stored in self.values.
         """
         "*** YOUR CODE HERE ***"
+        qval = 0
+        for ns, p in self.mdp.getTransitionStatesAndProbs(state,action):
+            qval += p*(self.mdp.getReward(state,action,ns)+(self.discount*self.values[ns]))
+        return qval
         util.raiseNotDefined()
 
     def computeActionFromValues(self, state):
@@ -89,6 +105,22 @@ class ValueIterationAgent(ValueEstimationAgent):
           terminal state, you should return None.
         """
         "*** YOUR CODE HERE ***"
+        if(self.mdp.isTerminal(state)):
+            return None
+        policy={}
+        
+        qvals = []
+        acts = []
+
+        for a in self.mdp.getPossibleActions(state):
+            qval = self.computeQValueFromValues(state,a)
+            qvals.append(qval)
+            acts.append(a)
+        if not qvals:
+            policy[state] = (0, None)
+        else:
+            policy[state] = (max(qvals), acts[qvals.index(max(qvals))])
+        return policy[state][1]
         util.raiseNotDefined()
 
     def getPolicy(self, state):
@@ -130,6 +162,20 @@ class AsynchronousValueIterationAgent(ValueIterationAgent):
 
     def runValueIteration(self):
         "*** YOUR CODE HERE ***"
+        counter = 0
+        s = self.mdp.getStates()
+        length = len(s)
+        while counter<self.iterations:
+            qvals = []
+            for a in self.mdp.getPossibleActions(s[counter%length]):
+                qval = self.computeQValueFromValues(s[counter%length],a)
+                qvals.append(qval)
+            if qvals:
+                self.values[s[counter%length]] = max(qvals)
+            else:
+                self.values[s[counter%length]] = 0
+            counter += 1
+            
 
 class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
     """
