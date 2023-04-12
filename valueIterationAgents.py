@@ -195,5 +195,39 @@ class PrioritizedSweepingValueIterationAgent(AsynchronousValueIterationAgent):
         ValueIterationAgent.__init__(self, mdp, discount, iterations)
 
     def runValueIteration(self):
+        predecessors = {}
+        for i in self.mdp.getStates():
+            for j in self.mdp.getPossibleActions(i):
+                for k in self.mdp.getTransitionStatesAndProbs(i,j):
+                    if k[0] not in predecessors:
+                        predecessors[k[0]] = {i}
+                    else:
+                        predecessors[k[0]].add(i)
+        pq = util.PriorityQueue()
+        vals = util.Counter()
+        for s in self.mdp.getStates():
+            if not self.mdp.isTerminal(s):
+                qvals = []
+                for a in self.mdp.getPossibleActions(s):
+                    qvals.append(self.computeQValueFromValues(s,a))
+                if qvals:
+                    diff = abs(max(qvals)-self.values[s])
+                    pq.update(s,-diff)
+                    vals[s] = max(qvals)
+        for i in range(self.iterations):
+            if not pq.isEmpty():
+                state = pq.pop()
+                if not self.mdp.isTerminal(state):
+                    self.values[state] = vals[state]
+                for pred in predecessors[state]:
+                    if not self.mdp.isTerminal(pred):
+                        qvals = []
+                        for a in self.mdp.getPossibleActions(pred):
+                            qvals.append(self.computeQValueFromValues(pred,a))
+                        if qvals:
+                            diff = abs(max(qvals)-self.values[pred])
+                            if diff > self.theta:
+                                pq.update(pred, -diff)
+                                vals[pred] = max(qvals)
         "*** YOUR CODE HERE ***"
 
